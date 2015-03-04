@@ -4,13 +4,8 @@
     ADD_SAMPLE("Input", "Gamepads", GamepadSample, 3);
 #endif
 
-GamepadSample::GamepadSample() : _gamepad(NULL)
+GamepadSample::GamepadSample() : _gamepad(NULL), _font(NULL)
 {
-}
-
-void GamepadSample::finalize()
-{
-    SAFE_RELEASE(_font);
 }
 
 void GamepadSample::initialize()
@@ -23,23 +18,25 @@ void GamepadSample::initialize()
     if (_gamepad && _gamepad->isVirtual())
         _gamepad->getForm()->setEnabled(true);
 
-    _font = Font::create("res/common/arial18.gpb");
+    _font = Font::create("res/ui/arial.gpb");
     _status = "Looking for gamepads...";
+}
+
+void GamepadSample::finalize()
+{
+    SAFE_RELEASE(_font);
 }
 
 void GamepadSample::updateGamepad(float elapsedTime, Gamepad* gamepad, unsigned int player)
 {
     char s[128];
-    sprintf(s, "Player: %d - VendorID: %d, %s, Product ID: %d, %s\nButtons: ", 
-                player, 
-                gamepad->getVendorId(), gamepad->getVendorString(),
-                gamepad->getProductId(), gamepad->getProductString());
+    sprintf(s, "Player: %d - %s\nButtons: ", player, gamepad->getName());
     _status += s;
-    for (int j = 0; j < 20; ++j)
+    for (int i = 0; i < 20; ++i)
     {
-        if (gamepad->isButtonDown((Gamepad::ButtonMapping)j))
+        if (gamepad->isButtonDown((Gamepad::ButtonMapping)i))
         {
-            sprintf(s, "%s ", getStringFromButtonMapping((Gamepad::ButtonMapping)j));
+            sprintf(s, "%s ", getStringFromButtonMapping((Gamepad::ButtonMapping)i));
             _status += s;
         }
     }
@@ -51,9 +48,9 @@ void GamepadSample::updateGamepad(float elapsedTime, Gamepad* gamepad, unsigned 
         sprintf(s, "Joystick %d: (%f, %f)\n", j, joystick.x, joystick.y);
         _status += s;
     }
-    for (unsigned int j = 0; j < gamepad->getTriggerCount(); ++j)
+    for (unsigned int k = 0; k < gamepad->getTriggerCount(); ++k)
     {
-        sprintf(s, "Trigger %d: %f\n", j, gamepad->getTriggerValue(j));
+        sprintf(s, "Trigger %d: %f\n", k, gamepad->getTriggerValue(k));
         _status += s;
     }
     _status += "\n";
@@ -73,7 +70,7 @@ void GamepadSample::render(float elapsedTime)
     drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 1, getFrameRate());
 
     _font->start();
-    _font->drawText(_status.c_str(), 5, 25, Vector4::one());
+    _font->drawText(_status.c_str(), 7, 27, Vector4::one(), 22);
     _font->finish();
 
 
@@ -103,22 +100,10 @@ const char* GamepadSample::getStringFromButtonMapping(Gamepad::ButtonMapping map
             return "A";
         case Gamepad::BUTTON_B:
             return "B";
-        case Gamepad::BUTTON_C:
-            return "C";
         case Gamepad::BUTTON_X:
             return "X";
         case Gamepad::BUTTON_Y:
             return "Y";
-        case Gamepad::BUTTON_Z:
-            return "Z";
-        case Gamepad::BUTTON_MENU1:
-            return "MENU1";
-        case Gamepad::BUTTON_MENU2:
-            return "MENU2";
-        case Gamepad::BUTTON_MENU3:
-            return "MENU3";
-        case Gamepad::BUTTON_MENU4:
-            return "MENU4";
         case Gamepad::BUTTON_L1:
             return "L1";
         case Gamepad::BUTTON_L2:
@@ -139,6 +124,12 @@ const char* GamepadSample::getStringFromButtonMapping(Gamepad::ButtonMapping map
             return "LEFT";
         case Gamepad::BUTTON_RIGHT:
             return "RIGHT";
+        case Gamepad::BUTTON_MENU1:
+            return "MENU1";
+        case Gamepad::BUTTON_MENU2:
+            return "MENU2";
+        case Gamepad::BUTTON_MENU3:
+            return "MENU3";
         default:
             return "";
     }

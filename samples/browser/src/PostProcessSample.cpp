@@ -2,7 +2,7 @@
 #include "SamplesGame.h"
 
 #if defined(ADD_SAMPLE)
-    ADD_SAMPLE("Graphics", "Post Process", PostProcessSample, 13);
+    ADD_SAMPLE("Graphics", "Post Process", PostProcessSample, 14);
 #endif
 
 #define FRAMEBUFFER_WIDTH 1024
@@ -79,21 +79,21 @@ PostProcessSample::PostProcessSample()
 
 void PostProcessSample::initialize()
 {
-    _font = Font::create("res/common/arial18.gpb");
+    _font = Font::create("res/ui/arial.gpb");
 
     // Load game scene from file
     _scene = Scene::load("res/common/duck.gpb");
-
-    // Get light node
-    Node* lightNode = _scene->findNode("directionalLight1");
-    Light* light = lightNode->getLight();
+    _scene->getActiveCamera()->setAspectRatio(getAspectRatio());
 
     // Initialize box model
     _modelNode = _scene->findNode("duck");
-    Model* model = _modelNode->getModel();
+    Model* model = dynamic_cast<Model*>(_modelNode->getDrawable());
     Material* material = model->setMaterial("res/common/duck.material");
-    material->getParameter("u_lightColor")->setValue(light->getColor());
-    material->getParameter("u_lightDirection")->setValue(lightNode->getForwardVectorView());
+    // Get light node
+    Node* lightNode = _scene->findNode("directionalLight1");
+    Light* light = lightNode->getLight();
+    material->getParameter("u_directionalLightColor[0]")->setValue(light->getColor());
+    material->getParameter("u_directionalLightDirection[0]")->setValue(lightNode->getForwardVectorView());
 
     // Create one frame buffer for the full screen compositerss.
     _frameBuffer = FrameBuffer::create("PostProcessSample", FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT);
@@ -209,12 +209,9 @@ void PostProcessSample::render(float elapsedTime)
 
 bool PostProcessSample::drawScene(Node* node)
 {
-    // If the node visited contains a model, draw it
-    Model* model = node->getModel(); 
-    if (model)
-    {
-        model->draw();
-    }
+    Drawable* drawable = node->getDrawable(); 
+    if (drawable)
+        drawable->draw();
     return true;
 }
 
@@ -223,7 +220,7 @@ void PostProcessSample::drawTechniqueId(const char* techniqueId)
     char buffer[128];
     sprintf(buffer, "%s", techniqueId);
     _font->start();
-    _font->drawText(buffer, Rectangle(0, 10, getWidth(), getHeight()), Vector4::one(), _font->getSize(), Font::ALIGN_TOP_HCENTER);
+    _font->drawText(buffer, Rectangle(0, 10, getWidth(), getHeight()), Vector4::one(), 18, Font::ALIGN_TOP_HCENTER);
     _font->finish();
 }
 

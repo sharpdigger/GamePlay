@@ -3,7 +3,7 @@
 #include "SamplesGame.h"
 
 #if defined(ADD_SAMPLE)
-    ADD_SAMPLE("Graphics", "Billboards", BillboardSample, 12);
+    ADD_SAMPLE("Graphics", "Billboards", BillboardSample, 11);
 #endif
 
 static const unsigned int MOVE_FORWARD = 1;
@@ -34,7 +34,7 @@ void BillboardSample::initialize()
     setMultiTouch(true);
 
 	// Create the font and scene
-    _font = Font::create("res/common/arial18.gpb");
+    _font = Font::create("res/ui/arial.gpb");
 	_scene = Scene::create();
 
 	// Initialize the camera
@@ -159,7 +159,7 @@ void BillboardSample::render(float elapsedTime)
 		node->setRotation(q);
 
 		if (node->getBoundingSphere().intersects(camera->getFrustum()))
-			node->getModel()->draw();
+			node->getDrawable()->draw();
 	}
 
     // draw the gamepad
@@ -281,10 +281,10 @@ void BillboardSample::loadGround()
 	Node* node = Node::create();
 	_ground = Model::create(mesh);
 	SAFE_RELEASE(mesh);
-	node->setModel(_ground);
+	node->setDrawable(_ground);
     _scene->addNode(node);
 	node->rotateX(MATH_DEG_TO_RAD(90));
-	Effect* effect = Effect::createFromFile("res/shaders/textured-unlit.vert", "res/shaders/textured-unlit.frag", "TEXTURE_REPEAT");    
+	Effect* effect = Effect::createFromFile("res/shaders/textured.vert", "res/shaders/textured.frag", "TEXTURE_REPEAT");    
 	Material* material = Material::create(effect); 
 	material->getStateBlock()->setDepthTest(true);
 	material->getStateBlock()->setBlend(false);
@@ -303,14 +303,14 @@ void BillboardSample::loadBillboards()
 	Mesh* mesh = Mesh::createQuad(-(BILLBOARD_WIDTH / 2.0f), -(BILLBOARD_HEIGHT / 2.0f), BILLBOARD_WIDTH, BILLBOARD_HEIGHT);
 	mesh->setBoundingSphere(BoundingSphere(Vector3::zero(), BILLBOARD_HEIGHT));
 
-    Effect* effect = Effect::createFromFile("res/shaders/textured-unlit.vert", "res/shaders/textured-unlit.frag", "TEXTURE_DISCARD_ALPHA");
+    Effect* effect = Effect::createFromFile("res/shaders/textured.vert", "res/shaders/textured.frag", "TEXTURE_DISCARD_ALPHA");
 
 	// Create the model and node and bind the material
     for ( unsigned int i = 0; i < BILLBOARD_COUNT; i++ ) 
     {   
 		Node* node = Node::create();
 		Model* model = Model::create(mesh);
-		node->setModel(model);
+		node->setDrawable(model);
 		_scene->addNode(node);
         
 		Material* material = Material::create(effect); 

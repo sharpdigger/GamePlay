@@ -2,7 +2,7 @@
 #include "SamplesGame.h"
 
 #if defined(ADD_SAMPLE)
-    ADD_SAMPLE("Scene", "Terrain", TerrainSample, 3);
+    ADD_SAMPLE("Graphics", "Terrain", TerrainSample, 12);
 #endif
 
 struct TerrainHitFilter : public PhysicsController::HitFilter
@@ -24,7 +24,7 @@ struct TerrainHitFilter : public PhysicsController::HitFilter
 TerrainSample::TerrainSample()
 	: _font(NULL), _scene(NULL), _terrain(NULL), _sky(NULL), _form(NULL), _formVisible(true),
 	  _wireframe(false), _debugPhysics(false), _snapToGround(true), _vsync(true),
-	  _mode(MODE_LOOK), _sphere(NULL), _box(NULL)
+      _mode(MODE_LOOK), _sphere(NULL), _box(NULL), _directionalLight(NULL)
 {
 }
 
@@ -41,21 +41,24 @@ void TerrainSample::initialize()
 {
     // Load scene
 	_scene = Scene::load("res/common/terrain/sample.scene");
-	_terrain = _scene->findNode("terrain")->getTerrain();
+	_terrain = dynamic_cast<Terrain*>(_scene->findNode("terrain")->getDrawable());
     _sky = _scene->findNode("sky");
+    _sky->setTag("lighting", "none");
 
     // Load shapes
     Bundle* bundle;
     bundle = Bundle::create("res/common/sphere.gpb");
     _sphere = bundle->loadNode("sphere");
+    dynamic_cast<Model*>(_sphere->getDrawable())->setMaterial("res/common/terrain/shapes.material#sphere", 0);
     SAFE_RELEASE(bundle);
 
     bundle = Bundle::create("res/common/box.gpb");
     _box = bundle->loadNode("box");
+    dynamic_cast<Model*>(_box->getDrawable())->setMaterial("res/common/terrain/shapes.material#box", 0);
     SAFE_RELEASE(bundle);
 
     // Load font
-	_font = Font::create("res/common/arial18.gpb");
+	_font = Font::create("res/ui/arial.gpb");
 
     // Setup form
     _form = Form::create("res/common/terrain/terrain.form");
@@ -76,6 +79,8 @@ void TerrainSample::initialize()
     // Use script camera for navigation
 	enableScriptCamera(true);
     setScriptCameraSpeed(20, 80);
+
+    _directionalLight = _scene->findNode("directionalLight")->getLight();
 }
 
 void TerrainSample::finalize()
@@ -144,33 +149,24 @@ void TerrainSample::render(float elapsedTime)
     sprintf(buffer, "FPS: %d", getFrameRate());
     _font->start();
     _font->drawText(buffer, 65, 18, Vector4::one(), 30);
-    if (_formVisible)
-    {
-        // Draw stats
-        sprintf(buffer,
-            "Total Patches: %d\n" \
-            "Visible Patches: %d\n" \
-            "Total Triangles: %d\n" \
-            "Visible Triangles: %d\n",
-            _terrain->getPatchCount(),
-            _terrain->getVisiblePatchCount(),
-            _terrain->getTriangleCount(),
-            _terrain->getVisibleTriangleCount());
-        _font->drawText(buffer, 25, 300, Vector4::one(), 20);
-    }
+
     _font->finish();
 }
 
 bool TerrainSample::drawScene(Node* node)
 {
-	if (node->getModel())
-	{
-		node->getModel()->draw();
-	}
-	else if (node->getTerrain())
-	{
-		node->getTerrain()->draw(_wireframe);
-	}
+    Camera* camera = _scene->getActiveCamera();
+    Drawable* drawable = node->getDrawable();
+    if (dynamic_cast<Model*>(drawable))
+    {
+        if (!node->getBoundingSphere().intersects(camera->getFrustum()))
+            return true;
+    }
+    if (drawable)
+    {
+        bool wireframe = (node == _sky) ? false : _wireframe;
+        drawable->draw(wireframe);
+    }
 
 	return true;
 }
@@ -244,7 +240,6 @@ void TerrainSample::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
             {
                 Node* clone = NULL;
                 PhysicsCollisionShape::Definition rbShape;
-                const char* material = NULL;
 
                 switch (_mode)
                 {
@@ -252,7 +247,6 @@ void TerrainSample::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
                     {
                         clone = _sphere->clone();
                         rbShape = PhysicsCollisionShape::sphere();
-                        material = "res/common/terrain/shapes.material#sphere";
                     }
                     break;
 
@@ -260,7 +254,6 @@ void TerrainSample::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
                     {
                         clone = _box->clone();
                         rbShape = PhysicsCollisionShape::box();
-                        material = "res/common/terrain/shapes.material#box";
                     }
                     break;
                 }
@@ -272,7 +265,6 @@ void TerrainSample::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
                     PhysicsRigidBody::Parameters rbParams(1);
                     clone->setCollisionObject(PhysicsCollisionObject::RIGID_BODY, rbShape, &rbParams);
                     _scene->addNode(clone);
-                    clone->getModel()->setMaterial(material);
                     clone->release();
 
                     _shapes.push_back(clone);
@@ -326,10 +318,6 @@ void TerrainSample::controlEvent(Control* control, EventType evt)
     {
         _terrain->setFlag(Terrain::LEVEL_OF_DETAIL, static_cast<CheckBox*>(control)->isChecked());
     }
-    else if (strcmp(control->getId(), "culling") == 0)
-    {
-        _terrain->setFlag(Terrain::FRUSTUM_CULLING, static_cast<CheckBox*>(control)->isChecked());
-    }
     else if (strcmp(control->getId(), "snapToGround") == 0)
     {
         _snapToGround = static_cast<CheckBox*>(control)->isChecked();
@@ -377,4 +365,30 @@ void TerrainSample::setMessage(const char* message)
     Label* label = static_cast<Label*>(_form->getControl("message"));
     label->setText(message ? message : "");
     _form->getControl("messageBox")->setVisible(message ? true : false);
+}
+
+Vector3 TerrainSample::getLightDirection0() const
+{
+    return _directionalLight->getNode()->getForwardVectorView();
+}
+
+Vector3 TerrainSample::getLightColor0() const
+{
+    return _directionalLight->getColor();
+}
+
+bool TerrainSample::resolveAutoBinding(const char* autoBinding, Node* node, MaterialParameter* parameter)
+{
+    if (strcmp(autoBinding, "LIGHT_DIRECTION_0") == 0)
+    {
+        parameter->bindValue(this, &TerrainSample::getLightDirection0);
+        return true;
+    }
+    else if (strcmp(autoBinding, "LIGHT_COLOR_0") == 0)
+    {
+        parameter->bindValue(this, &TerrainSample::getLightColor0);
+        return true;
+    }
+
+    return false;
 }

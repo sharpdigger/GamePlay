@@ -3,7 +3,7 @@
 #include "SamplesGame.h"
 
 #if defined(ADD_SAMPLE)
-    ADD_SAMPLE("Audio", "3D Audio", Audio3DSample, 1);
+    ADD_SAMPLE("Media", "Audio 3D", Audio3DSample, 1);
 #endif
 
 static const unsigned int MOVE_FORWARD = 1;
@@ -12,7 +12,6 @@ static const unsigned int MOVE_LEFT = 4;
 static const unsigned int MOVE_RIGHT = 8;
 static const unsigned int MOVE_UP = 16;
 static const unsigned int MOVE_DOWN = 32;
-
 static const float MOVE_SPEED = 15.0f;
 static const float UP_DOWN_SPEED = 10.0f;
 
@@ -24,20 +23,22 @@ Audio3DSample::Audio3DSample()
 void Audio3DSample::initialize()
 {
     setMultiTouch(true);
-    _font = Font::create("res/common/arial18.gpb");
+    _font = Font::create("res/ui/arial.gpb");
     // Load game scene from file
     _scene = Scene::load("res/common/box.gpb");
 
     // Get light node
     Node* lightNode = _scene->findNode("directionalLight1");
     Light* light = lightNode->getLight();
+    lightNode->setRotation(Vector3(1, 0, 0), -MATH_DEG_TO_RAD(45));
 
     // Initialize box model
     Node* boxNode = _scene->findNode("box");
-    Model* boxModel = boxNode->getModel();
-    Material* boxMaterial = boxModel->setMaterial("res/common/box.material");
-    boxMaterial->getParameter("u_lightColor")->setValue(light->getColor());
-    boxMaterial->getParameter("u_lightDirection")->setValue(lightNode->getForwardVectorView());
+    Model* boxModel = dynamic_cast<Model*>(boxNode->getDrawable());
+    Material* boxMaterial = boxModel->setMaterial("res/common/box.material#lambert1");
+
+    boxMaterial->getParameter("u_directionalLightColor[0]")->setValue(light->getColor());
+    boxMaterial->getParameter("u_directionalLightDirection[0]")->setValue(lightNode->getForwardVectorView());
 
     // Remove the cube from the scene but keep a reference to it.
     _cubeNode = boxNode;
@@ -149,7 +150,7 @@ void Audio3DSample::render(float elapsedTime)
     // Visit all the nodes in the scene for drawing
     _scene->visit(this, &Audio3DSample::drawScene);
 
-    drawDebugText(0, _font->getSize());
+    drawDebugText(5, 20, 18);
 
     _gamepad->draw();
     drawFrameRate(_font, Vector4(0, 0.5f, 1, 1), 5, 1, getFrameRate());
@@ -157,12 +158,9 @@ void Audio3DSample::render(float elapsedTime)
 
 bool Audio3DSample::drawScene(Node* node)
 {
-    // If the node visited contains a model, draw it
-    Model* model = node->getModel(); 
-    if (model)
-    {
-        model->draw();
-    }
+    Drawable* drawable = node->getDrawable(); 
+    if (drawable)
+        drawable->draw();
     return true;
 }
 
@@ -171,6 +169,7 @@ void Audio3DSample::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
     switch (evt)
     {
     case Touch::TOUCH_PRESS:
+    {
         if (x < 75 && y < 50)
         {
             // Toggle Vsync if the user touches the top left corner
@@ -179,10 +178,13 @@ void Audio3DSample::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
         _prevX = x;
         _prevY = y;
         break;
+    }
     case Touch::TOUCH_RELEASE:
+    {
         _prevX = 0;
         _prevY = 0;
         break;
+     }
     case Touch::TOUCH_MOVE:
     {
         int deltaX = x - _prevX;
@@ -309,23 +311,23 @@ void Audio3DSample::addSound(const std::string& file)
     node->release();
 }
 
-void Audio3DSample::drawDebugText(int x, int y)
+void Audio3DSample::drawDebugText(int x, int y, unsigned int fontSize)
 {
     _font->start();
     static const int V_SPACE = 16;
     AudioListener* audioListener = AudioListener::getInstance();
     drawVector3("Position", audioListener->getPosition(), x, y);
-    drawVector3("Forward", audioListener->getOrientationForward(), x, y+=V_SPACE);
-    drawVector3("Orientation", audioListener->getOrientationUp(), x, y+=V_SPACE);
-    drawVector3("Velocity", audioListener->getVelocity(), x, y+=V_SPACE);
+    drawVector3("Forward", audioListener->getOrientationForward(), x, y += fontSize);
+    drawVector3("Orientation", audioListener->getOrientationUp(), x, y += fontSize);
+    drawVector3("Velocity", audioListener->getVelocity(), x, y += fontSize);
     _font->finish();
 }
 
-void Audio3DSample::drawVector3(const char* str, const Vector3 vector, int x, int y)
+void Audio3DSample::drawVector3(const char* str, const Vector3& vector, int x, int y)
 {
     char buffer[255];
-    sprintf(buffer, "%s: (%f, %f, %f)", str, vector.x, vector.y, vector.z);
-    _font->drawText(buffer, x, y, Vector4::one(), _font->getSize());
+    sprintf(buffer, "%s: (%.3f, %.3f, %.3f)", str, vector.x, vector.y, vector.z);
+    _font->drawText(buffer, x, y, Vector4::one(), 22);
 }
 
 void Audio3DSample::loadGrid(Scene* scene)
@@ -335,8 +337,8 @@ void Audio3DSample::loadGrid(Scene* scene)
     assert(gridModel);
     gridModel->setMaterial("res/common/grid.material");
     Node* node = scene->addNode("grid");
-    node->setModel(gridModel);
-    gridModel->release();
+    node->setDrawable(gridModel);
+    SAFE_RELEASE(gridModel);
 }
 
 void Audio3DSample::gamepadEvent(Gamepad::GamepadEvent evt, Gamepad* gamepad)

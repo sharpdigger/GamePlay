@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 2.8)
 
 project(GamePlay)
 
-set(GAMEPLAY_VERSION 1.6.0)
+set(GAMEPLAY_VERSION 3.0.0)
 set(CMAKE_C_COMPILER_INIT g++)
 
 # debug
@@ -25,6 +25,6 @@ add_subdirectory(gameplay)
 add_subdirectory(samples)
 
 # gameplay encoder
-# A pre-compiled executable can be found in 'gameplay/bin'
-# Uncomment out this line if you want to build the encoder instead of using the pre-compiled gameplay-encoder.
+# A pre-compiled executable can be found in 'gameplay/bin'. Uncomment to build yourself.
 #add_subdirectory(tools/encoder)
+#add_subdirectory(tools/luagen)

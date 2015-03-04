@@ -185,9 +185,9 @@ void Sample::getAccelerometerValues(float* pitch, float* roll)
     Game::getInstance()->getAccelerometerValues(pitch, roll);
 }
 
-void Sample::getRawSensorValues(float* accelX, float* accelY, float* accelZ, float* gyroX, float* gyroY, float* gyroZ)
+void Sample::getSensorValues(float* accelX, float* accelY, float* accelZ, float* gyroX, float* gyroY, float* gyroZ)
 {
-    Game::getInstance()->getRawSensorValues(accelX, accelY, accelZ, gyroX, gyroY, gyroZ);
+    Game::getInstance()->getSensorValues(accelX, accelY, accelZ, gyroX, gyroY, gyroZ);
 }
 
 void Sample::schedule(long timeOffset, TimeListener* timeListener, void* cookie)
@@ -237,6 +237,18 @@ void Sample::gestureTapEvent(int x, int y)
 {
 }
 
+void Sample::gestureLongTapEvent(int x, int y, float duration)
+{
+}
+
+void Sample::gestureDragEvent(int x, int y)
+{
+}
+
+void Sample::gestureDropEvent(int x, int y)
+{
+}
+
 void Sample::gamepadEvent(Gamepad::GamepadEvent evt, Gamepad* gamepad)
 {
 }
@@ -256,6 +268,6 @@ void Sample::drawFrameRate(Font* font, const Vector4& color, unsigned int x, uns
     char buffer[10];
     sprintf(buffer, "%u", fps);
     font->start();
-    font->drawText(buffer, x, y, color, font->getSize());
+    font->drawText(buffer, x, y, color, 18);
     font->finish();
 }

@@ -2,7 +2,7 @@
 #include "SamplesGame.h"
 
 #if defined(ADD_SAMPLE)
-    ADD_SAMPLE("Physics", "Collision Objects", PhysicsCollisionObjectSample, 1);
+    ADD_SAMPLE("Physics", "Collision 3D", PhysicsCollisionObjectSample, 1);
 #endif
 
 PhysicsCollisionObjectSample::PhysicsCollisionObjectSample()
@@ -21,7 +21,7 @@ PhysicsCollisionObjectSample::PhysicsCollisionObjectSample()
 void PhysicsCollisionObjectSample::initialize()
 {
     // Create the font for drawing the framerate.
-    _font = Font::create("res/common/arial18.gpb");
+    _font = Font::create("res/ui/arial.gpb");
 
     _scene = Scene::load("res/common/physics.scene");
     // Use the aspect ratio of the display instead of the aspect ratio defined in the scene file.
@@ -114,15 +114,15 @@ void PhysicsCollisionObjectSample::keyEvent(Keyboard::KeyEvent evt, int key)
 
 bool PhysicsCollisionObjectSample::drawScene(Node* node)
 {
-    Model* model = node->getModel();
-    if (model)
-        model->draw(_wireFrame);
+    Drawable* drawable = node->getDrawable();
+    if (drawable)
+        drawable->draw(_wireFrame);
     return true;
 }
 
 bool PhysicsCollisionObjectSample::bindLights(Node* node)
 {
-    Model* model = node->getModel();
+    Model* model = dynamic_cast<Model*>(node->getDrawable());
     if (model)
     {
         Material* material = model->getMaterial();
@@ -133,10 +133,11 @@ bool PhysicsCollisionObjectSample::bindLights(Node* node)
             {
                 ambientColorParam->setValue(_scene->getAmbientColor());
             }
+
             if (_lightNode && _lightNode->getLight())
             {
-                MaterialParameter* lightDirectionParam = material->getParameter("u_lightDirection");
-                MaterialParameter* lightColorParam = material->getParameter("u_lightColor");
+                MaterialParameter* lightDirectionParam = material->getParameter("u_directionalLightDirection[0]");
+                MaterialParameter* lightColorParam = material->getParameter("u_directionalLightColor[0]");
                 if (lightDirectionParam)
                 {
                     lightDirectionParam->bindValue(_lightNode, &Node::getForwardVectorView);

@@ -3,7 +3,7 @@
 
 #include "Vector3.h"
 #include "Ref.h"
-#include "Node.h"
+#include "Transform.h"
 
 namespace gameplay
 {
@@ -13,7 +13,11 @@ class Node;
 class NodeCloneContext;
 
 /**
- * Declares an audio source in 3D space.
+ * Defines an audio source in 3D space.
+ *
+ * This can be attached to a Node for applying its 3D transformation.
+ *
+ * @see http://gameplay3d.github.io/GamePlay/docs/file-formats.html#wiki-Audio
  */
 class AudioSource : public Ref, public Transform::Listener
 {
@@ -39,10 +43,11 @@ public:
      * "<file-path>.<extension>#<namespace-id>/<namespace-id>/.../<namespace-id>" and "#<namespace-id>/<namespace-id>/.../<namespace-id>" is optional).
      * 
      * @param url The relative location on disk of the sound file or a URL specifying a Properties object defining an audio source.
+     * @param streamed Don't read the entire audio buffer first before playing, instead play immediately from a stream that is read on demand.
      * @return The newly created audio source, or NULL if an audio source cannot be created.
      * @script{create}
      */
-    static AudioSource* create(const char* url);
+    static AudioSource* create(const char* url, bool streamed = false);
 
     /**
      * Create an audio source from the given properties object.
@@ -84,6 +89,13 @@ public:
      * @return PLAYING if the source is playing, STOPPED if the source is stopped, PAUSED if the source is paused and INITIAL otherwise.
      */
     AudioSource::State getState() const;
+
+    /**
+     * Determines whether the audio source is streaming or not.
+     *
+     * @return true if the audio source is streaming, false if not.
+     */
+    bool isStreamed() const;
 
     /**
      * Determines whether the audio source is looped or not.
@@ -188,10 +200,11 @@ private:
      * Clones the audio source and returns a new audio source.
      * 
      * @param context The clone context.
-     * 
      * @return The newly created audio source.
      */
-    AudioSource* clone(NodeCloneContext &context) const;
+    AudioSource* clone(NodeCloneContext& context);
+
+    bool streamDataIfNeeded();
 
     ALuint _alSource;
     AudioBuffer* _buffer;

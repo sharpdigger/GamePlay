@@ -43,7 +43,7 @@ protected:
      * @see Game::finalize
      */
     void finalize();
-    
+
     /**
      * @see Game::update
      */
@@ -53,6 +53,8 @@ protected:
      * @see Game::render
      */
     void render(float elapsedTime);
+
+
 
 private:
 
@@ -104,6 +106,7 @@ private:
      */
     void drawText();
 
+
     // Scene variables
     Scene* _scene;
     Node* _cameraNode;
@@ -131,7 +134,7 @@ private:
     double _finishedTime;
     bool _pushing;
     Vector2 _pushPoint;
-    
+
     // Game time in seconds
     float _time;
 
@@ -140,9 +143,10 @@ private:
     MaterialParameter* _shipSpecularParameter;
 
     // Sounds
-    AudioSource* _backgroundSound;
+    AudioSource* _backgroundMusic;
     AudioSource* _spaceshipSound;
 
+    bool _hitSomething;
 };
 
 #endif

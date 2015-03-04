@@ -1,37 +1,38 @@
 
 include_directories( 
-    ${CMAKE_SOURCE_DIR}/external-deps/zlib/include
-    ${CMAKE_SOURCE_DIR}/external-deps/libpng/include
-    ${CMAKE_SOURCE_DIR}/external-deps/freetype2/include
+    ${CMAKE_SOURCE_DIR}/external-deps/include
     /usr/include/fbxsdk
-    /usr/include
 )
 
+if ( "${CMAKE_BUILD_TYPE}" STREQUAL "DEBUG" )
 add_definitions(-D_DEBUG)
-add_definitions(-D__linux__ -DNO_BOOST -DNO_ZAE -DUSE_FBX)
+endif()
+add_definitions(-D__linux__ -DUSE_FBX)
+
+IF(ARCH_DIR STREQUAL "x64")
+    set(ARCH_DEPS_DIR "x86_64")
+ELSE()
+    set(ARCH_DEPS_DIR "x86")
+ENDIF(ARCH_DIR STREQUAL "x64")
 
 link_directories(
-    ${CMAKE_SOURCE_DIR}/external-deps/zlib/lib/linux/${ARCH_DIR}
-    ${CMAKE_SOURCE_DIR}/external-deps/libpng/lib/linux/${ARCH_DIR}
-    ${CMAKE_SOURCE_DIR}/external-deps/freetype2/lib/linux/${ARCH_DIR}
-    /usr/lib/gcc4/${ARCH_DIR}
-    /usr/lib
+    ${CMAKE_SOURCE_DIR}/external-deps/lib/linux/${ARCH_DEPS_DIR}
 )
 
 set(APP_LIBRARIES
     dl
-    fbxsdk-2013.3-static
-    png
-    z   
+    fbxsdk
+    gameplay-deps
     freetype
     pthread
-) 
+)
 
-add_definitions(-lstdc++ -ldl -lfbxsdk-2013.3-static -lpng -lz -lfreetype -lpthread)
+add_definitions(-lstdc++ -ldl -lfbxsdk -lgameplay-deps -lfreetype -lpthread)
 
 set( APP_NAME gameplay-encoder )
 
 set(APP_SRC
+    src/main.cpp
     src/AnimationChannel.cpp
     src/AnimationChannel.h
     src/Animation.cpp
@@ -49,6 +50,8 @@ set(APP_SRC
     src/Curve.cpp
     src/Curve.h
     src/Curve.inl
+    src/edtaa3func.c
+    src/edtaa3func.h
     src/Effect.cpp
     src/Effect.h
     src/EncoderArguments.cpp
@@ -73,7 +76,6 @@ set(APP_SRC
     src/Image.h
     src/Light.cpp
     src/Light.h
-    src/main.cpp
     src/Material.cpp
     src/Material.h
     src/MaterialParameter.cpp

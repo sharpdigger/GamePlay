@@ -59,9 +59,9 @@ SpaceshipGame game;
 // Clamp function
 #define CLAMP(x, min, max) (x < min ? min : (x > max ? max : x))
 
-SpaceshipGame::SpaceshipGame() 
+SpaceshipGame::SpaceshipGame()
     : _scene(NULL), _cameraNode(NULL), _shipGroupNode(NULL), _shipNode(NULL), _propulsionNode(NULL), _glowNode(NULL),
-      _stateBlock(NULL), _font(NULL), _throttle(0), _shipTilt(0), _finished(false), _finishedTime(0), _pushing(false), _time(0), 
+      _stateBlock(NULL), _font(NULL), _throttle(0), _shipTilt(0), _finished(true), _finishedTime(0), _pushing(false), _time(0),
        _glowDiffuseParameter(NULL), _shipSpecularParameter(NULL), _spaceshipSound(NULL)
 {
 }
@@ -94,13 +94,13 @@ void SpaceshipGame::initialize()
     initializeSpaceship();
     initializeEnvironment();
 
-    // Create a background audio track
-    _backgroundSound = AudioSource::create("res/background.ogg");
-    if (_backgroundSound)
-        _backgroundSound->setLooped(true);
-    
+    // Create a background music audio track.
+    _backgroundMusic = AudioSource::create("res/background.ogg", true);
+    if (_backgroundMusic)
+        _backgroundMusic->setLooped(true);
+
     // Create font
-    _font = Font::create("res/airstrip28.gpb");
+    _font = Font::create("res/airstrip.gpb");
 
     // Store camera node
     _cameraNode = _scene->findNode("camera1");
@@ -120,28 +120,28 @@ void SpaceshipGame::initializeSpaceship()
     // Setup spaceship model
     // Part 0
     _shipNode = _scene->findNode("pSpaceShip");
-    material = _shipNode->getModel()->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR", 0);
+    material = dynamic_cast<Model*>(_shipNode->getDrawable())->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR;DIRECTIONAL_LIGHT_COUNT 1", 0);
     material->getParameter("u_diffuseColor")->setValue(Vector4(0.53544f, 0.53544f, 0.53544f, 1.0f));
     initializeMaterial(material, true, true);
     // Part 1
-    material = _shipNode->getModel()->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR", 1);
+    material = dynamic_cast<Model*>(_shipNode->getDrawable())->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR;DIRECTIONAL_LIGHT_COUNT 1", 1);
     material->getParameter("u_diffuseColor")->setValue(Vector4(0.8f, 0.8f, 0.8f, 1.0f));
     _shipSpecularParameter = material->getParameter("u_specularExponent");
     initializeMaterial(material, true, true);
     // Part 2
-    material = _shipNode->getModel()->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR", 2);
+    material = dynamic_cast<Model*>(_shipNode->getDrawable())->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR;DIRECTIONAL_LIGHT_COUNT 1", 2);
     material->getParameter("u_diffuseColor")->setValue(Vector4(0.280584f, 0.5584863f, 0.6928f, 1.0f));
     initializeMaterial(material, true, true);
 
     // Setup spaceship propulsion model
     _propulsionNode = _scene->findNode("pPropulsion");
-    material = _propulsionNode->getModel()->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR");
+    material = dynamic_cast<Model*>(_propulsionNode->getDrawable())->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR;DIRECTIONAL_LIGHT_COUNT 1");
     material->getParameter("u_diffuseColor")->setValue(Vector4(0.8f, 0.8f, 0.8f, 1.0f));
     initializeMaterial(material, true, true);
 
     // Glow effect node
     _glowNode = _scene->findNode("pGlow");
-    material = _glowNode->getModel()->setMaterial("res/shaders/textured-unlit.vert", "res/shaders/textured-unlit.frag", "MODULATE_COLOR");
+    material = dynamic_cast<Model*>(_glowNode->getDrawable())->setMaterial("res/shaders/textured.vert", "res/shaders/textured.frag", "MODULATE_COLOR");
     material->getParameter("u_diffuseTexture")->setValue("res/propulsion_glow.png", true);
     _glowDiffuseParameter = material->getParameter("u_modulateColor");
     initializeMaterial(material, false, false);
@@ -164,7 +164,7 @@ void SpaceshipGame::initializeEnvironment()
     for (size_t i = 0, count = nodes.size(); i < count; ++i)
     {
         Node* pGround = nodes[i];
-        material = pGround->getModel()->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR");
+        material = dynamic_cast<Model*>(pGround->getDrawable())->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR;DIRECTIONAL_LIGHT_COUNT 1");
         material->getParameter("u_diffuseColor")->setValue(Vector4(0.280584f, 0.5584863f, 0.6928f, 1.0f));
         initializeMaterial(material, true, true);
     }
@@ -175,7 +175,7 @@ void SpaceshipGame::initializeEnvironment()
     for (size_t i = 0, count = nodes.size(); i < count; ++i)
     {
         Node* pRoof = nodes[i];
-        material = pRoof->getModel()->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR");
+        material = dynamic_cast<Model*>(pRoof->getDrawable())->setMaterial("res/shaders/colored.vert", "res/shaders/colored.frag", "SPECULAR;DIRECTIONAL_LIGHT_COUNT 1");
         material->getParameter("u_diffuseColor")->setValue(Vector4(0.280584f, 0.5584863f, 0.6928f, 1.0f));
         initializeMaterial(material, true, true);
     }
@@ -183,7 +183,7 @@ void SpaceshipGame::initializeEnvironment()
     // Setup background model
     nodes.clear();
     Node* pBackground = _scene->findNode("pBackground");
-    material = pBackground->getModel()->setMaterial("res/shaders/textured.vert", "res/shaders/textured.frag");
+    material = dynamic_cast<Model*>(pBackground->getDrawable())->setMaterial("res/shaders/textured.vert", "res/shaders/textured.frag", "DIRECTIONAL_LIGHT_COUNT 1");
     material->getParameter("u_diffuseTexture")->setValue("res/background.png", true);
     initializeMaterial(material, true, false);
 }
@@ -200,15 +200,16 @@ void SpaceshipGame::initializeMaterial(Material* material, bool lighting, bool s
     {
         // Apply lighting material parameters
         material->setParameterAutoBinding("u_inverseTransposeWorldViewMatrix", RenderState::INVERSE_TRANSPOSE_WORLD_VIEW_MATRIX);
+        material->getParameter("u_ambientColor")->setValue(AMBIENT_LIGHT_COLOR);
 
         Node* lightNode = _scene->findNode("directionalLight1");
         Vector3 lightDirection = lightNode->getForwardVector();
         lightDirection.normalize();
-
-        material->getParameter("u_lightDirection")->setValue(lightDirection);
-        material->getParameter("u_lightColor")->setValue(lightNode->getLight()->getColor());
-        material->getParameter("u_ambientColor")->setValue(AMBIENT_LIGHT_COLOR);
-       
+        if (lightNode)
+        {
+            material->getParameter("u_directionalLightColor[0]")->setValue(lightNode->getLight()->getColor());
+            material->getParameter("u_directionalLightDirection[0]")->setValue(lightDirection);
+        }
 
         if (specular)
         {
@@ -222,7 +223,7 @@ void SpaceshipGame::initializeMaterial(Material* material, bool lighting, bool s
 
 void SpaceshipGame::finalize()
 {
-    SAFE_RELEASE(_backgroundSound);
+    SAFE_RELEASE(_backgroundMusic);
     SAFE_RELEASE(_spaceshipSound);
     SAFE_RELEASE(_font);
     SAFE_RELEASE(_stateBlock);
@@ -233,22 +234,23 @@ void SpaceshipGame::update(float elapsedTime)
 {
     // Calculate elapsed time in seconds
     float t = (float)elapsedTime / 1000.0;
-    
+
     if (!_finished)
     {
         _time += t;
 
-        // Play the background track
-        if (_backgroundSound->getState() != AudioSource::PLAYING)
-            _backgroundSound->play();
+        // Play the background music track
+        if (_backgroundMusic->getState() != AudioSource::PLAYING)
+            _backgroundMusic->play();
     }
     else
     {
-        // Stop the background track
-        if (_backgroundSound->getState() != AudioSource::STOPPED)
-            _backgroundSound->stop();
-
-        _throttle = 0.0f;
+        // Stop the background music track
+        if (_backgroundMusic->getState() == AudioSource::PLAYING || _backgroundMusic->getState() == AudioSource::PAUSED)
+		{
+            _backgroundMusic->stop();
+        	_throttle = 0.0f;
+		}
     }
 
     // Set initial force due to gravity
@@ -266,7 +268,7 @@ void SpaceshipGame::update(float elapsedTime)
         // We will use this vector to apply a "pushing" force to the space ship, similar to what
         // happens when you hold a magnet close to an object with opposite polarity.
         Vector2 pushForce((shipCenterScreen.x - _pushPoint.x), -(shipCenterScreen.y - _pushPoint.y));
-        
+
         // Transform the vector so that a smaller magnitude emits a larger force and applying the
         // maximum touch distance.
         float distance = (std::max)(TOUCH_DISTANCE_MAX - pushForce.length(), 0.0f);
@@ -341,7 +343,7 @@ void SpaceshipGame::update(float elapsedTime)
         // Play sound effect
         if (_spaceshipSound->getState() != AudioSource::PLAYING)
             _spaceshipSound->play();
-        
+
         // Set the pitch based on the throttle
         _spaceshipSound->setPitch(_throttle * SOUND_PITCH_SCALE);
     }
@@ -364,7 +366,7 @@ void SpaceshipGame::handleCollisions(float t)
     const BoundingSphere& shipBounds = _shipNode->getBoundingSphere();
 
     // Compute a bounding box for floor collisions
-    BoundingBox propulsionBounds = _propulsionNode->getModel()->getMesh()->getBoundingBox();
+    BoundingBox propulsionBounds = dynamic_cast<Model*>(_propulsionNode->getDrawable())->getMesh()->getBoundingBox();
     propulsionBounds.transform(_propulsionNode->getWorldMatrix());
 
     if (propulsionBounds.min.y <= FLOOR_HEIGHT)
@@ -401,6 +403,7 @@ void SpaceshipGame::handleCollisions(float t)
         {
             _velocity.x = (std::min)(_velocity.x - friction  * t, 0.0f);
         }
+		_hitSomething = true;
     }
 
     // Keep the ship within the playable area of the map
@@ -448,6 +451,7 @@ void SpaceshipGame::resetGame()
     _velocity.set(0, 0);
     _shipGroupNode->setTranslation(_initialShipPos);
     _cameraNode->setTranslation(_initialCameraPos);
+    _hitSomething = false;
 }
 
 void SpaceshipGame::render(float elapsedTime)
@@ -476,15 +480,15 @@ void SpaceshipGame::drawSplash(void* param)
 
 bool SpaceshipGame::drawScene(Node* node, void* cookie)
 {
-    Model* model = node->getModel();
-    if (model)
+    Drawable* drawable = node->getDrawable();
+    if (drawable)
     {
         // Transparent nodes must be drawn last (stage 1)
         bool isTransparent = (node == _glowNode);
 
         // Skip transparent objects for stage 0
         if ((!isTransparent && (int*)cookie == 0) || (isTransparent && (int*)cookie == (int*)1))
-            model->draw();
+            drawable->draw();
     }
 
     return true;
@@ -538,3 +542,6 @@ void SpaceshipGame::touchEvent(Touch::TouchEvent evt, int x, int y, unsigned int
         break;
     }
 }
+
+
+

@@ -1,19 +1,22 @@
-cmake_minimum_required(VERSION 2.7)
+cmake_minimum_required(VERSION 2.8)
 PROJECT(TEMPLATE_PROJECT)
 
 set(GAME_NAME TEMPLATE_PROJECT)
 
 if( CMAKE_SIZEOF_VOID_P EQUAL 8 )
     set(ARCH_DIR "x64" )
-else( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set(ARCH_DEPS_DIR "x86_64" )
+else()
     set(ARCH_DIR "x86" )
-endif( CMAKE_SIZEOF_VOID_P EQUAL 8 )
+    set(ARCH_DEPS_DIR "x86" )
+endif()
 
 set(GAMEPLAY_SRC_PATH "GAMEPLAY_PATH") 
-set(GAMEPLAY_EXT_LIBS_PATH "${GAMEPLAY_SRC_PATH}/external-deps")
+set(GAMEPLAY_EXT_LIBS_PATH "${GAMEPLAY_SRC_PATH}/external-deps/lib")
 
 IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
     ADD_DEFINITIONS(-D__linux__)
+    ADD_DEFINITIONS(-std=c++11)
     SET(TARGET_OS "LINUX")
     SET(TARGET_OS_DIR "linux")
 ELSEIF(CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -52,11 +55,12 @@ macro (append_gameplay_lib listToAppend)
 endmacro(append_gameplay_lib)
 
 macro (append_gameplay_ext_lib listToAppend libName libDirName)
+    string(TOLOWER ${CMAKE_SYSTEM_NAME} systemName)
     IF("${libDirName}" STREQUAL "")
 		find_library(FOUND_LIB_${libName} NAMES ${libName} ${ARGN})
     ELSE("${libDirName}" STREQUAL "")
         set(pathToSearch
-            "${GAMEPLAY_EXT_LIBS_PATH}/${libDirName}/lib/${TARGET_OS_DIR}/${ARCH_DIR}")
+            "${GAMEPLAY_EXT_LIBS_PATH}/${systemName}/${ARCH_DEPS_DIR}")
 		find_library(FOUND_LIB_${libName} NAMES ${libName} ${ARGN} HINTS ${pathToSearch})
     ENDIF("${libDirName}" STREQUAL "")
 
@@ -65,17 +69,18 @@ macro (append_gameplay_ext_lib listToAppend libName libDirName)
 endmacro (append_gameplay_ext_lib)
 
 macro(copy_files TARGET_NAME GLOBPAT SOURCE DESTINATION RECUR)
+    get_filename_component(REALPATH_SOURCE ${SOURCE} REALPATH)
     IF(${RECUR})
         SET(RECURSE_PARAM GLOB_RECURSE)
     ELSEIF(NOT ${RECUR})
         SET(RECURSE_PARAM GLOB)
     ENDIF(${RECUR})
-    file(${RECURSE_PARAM} COPY_FILES RELATIVE ${SOURCE} "${SOURCE}/${GLOBPAT}")
+    file(${RECURSE_PARAM} COPY_FILES RELATIVE ${REALPATH_SOURCE} "${REALPATH_SOURCE}/${GLOBPAT}")
 
-  add_custom_target(${TARGET_NAME} ALL COMMENT "Copying files: ${SOURCE}/${GLOBPAT}")
+  add_custom_target(${TARGET_NAME} ALL COMMENT "Copying files: ${REALPATH_SOURCE}/${GLOBPAT}")
 
   foreach(FILENAME ${COPY_FILES})
-    set(SRC "${SOURCE}/${FILENAME}")
+    set(SRC "${REALPATH_SOURCE}/${FILENAME}")
     set(DST "${DESTINATION}/${FILENAME}")
 
     IF(IS_DIRECTORY ${SRC})
@@ -88,27 +93,11 @@ endmacro(copy_files)
 
 include_directories( 
     ${GAMEPLAY_SRC_PATH}/gameplay/src
-    ${GAMEPLAY_SRC_PATH}/external-deps/lua/include
-    ${GAMEPLAY_SRC_PATH}/external-deps/bullet/include
-    ${GAMEPLAY_SRC_PATH}/external-deps/libpng/include
-    ${GAMEPLAY_SRC_PATH}/external-deps/oggvorbis/include
-    ${GAMEPLAY_SRC_PATH}/external-deps/zlib/include
-    ${GAMEPLAY_SRC_PATH}/external-deps/openal/include
-	${GAMEPLAY_SRC_PATH}/external-deps/openal/include/AL
-    ${GAMEPLAY_SRC_PATH}/external-deps/glew/include
+    ${GAMEPLAY_SRC_PATH}/external-deps/include
 )
 
 append_gameplay_lib(GAMEPLAY_LIBRARIES)
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "GLEW" "glew" "glew32")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "lua" "lua")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "png" "libpng" "libpng14")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "BulletDynamics" "bullet")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "BulletCollision" "bullet")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "LinearMath" "bullet")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "openal" "openal" "openal32")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "vorbis" "oggvorbis" "libvorbis")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "ogg" "oggvorbis" "libogg")
-append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "z" "zlib" "zlib")
+append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "gameplay-deps" "libs")
 
 IF (TARGET_OS STREQUAL "LINUX")
 	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "GL" "")
@@ -117,10 +106,13 @@ IF (TARGET_OS STREQUAL "LINUX")
 	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "dl" "")
 	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "rt" "" )
 	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "pthread" "" )
+	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "gtk-x11-2.0" "" )
+	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "gobject-2.0" "" )
+	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "glib-2.0" "" )
+
 ELSEIF (TARGET_OS STREQUAL "WINDOWS")
 	set(GAMEPLAY_LIBRARIES ${GAMEPLAY_LIBRARIES} "OpenGL32")
 	set(GAMEPLAY_LIBRARIES ${GAMEPLAY_LIBRARIES} "GLU32")
-	append_gameplay_ext_lib(GAMEPLAY_LIBRARIES "vorbisfile" "oggvorbis" "libvorbisfile")
 	ADD_DEFINITIONS(-D_ITERATOR_DEBUG_LEVEL=0)
 ENDIF (TARGET_OS STREQUAL "LINUX")
 
@@ -149,4 +141,5 @@ set_target_properties(${GAME_NAME} PROPERTIES
 #processing to the the res files in the future like zipping or preparation to
 #per platfom format.
 copy_files(CopyRes * "${CMAKE_SOURCE_DIR}/res" "$<TARGET_FILE_DIR:${GAME_NAME}>/res" 1)
+copy_files(CopyShaders * "${GAMEPLAY_SRC_PATH}/gameplay/res/shaders" "$<TARGET_FILE_DIR:${GAME_NAME}>/res/shaders" 1)
 copy_files(CopyConfig *.config "${CMAKE_SOURCE_DIR}" "$<TARGET_FILE_DIR:${GAME_NAME}>" 0)
